@@ -1,0 +1,57 @@
+allprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'maven'
+
+    sourceCompatibility = 1.7
+    targetCompatibility = 1.7
+
+    version 'v0.20.1'
+    group 'com.github.TeamNewPipe'
+
+    repositories {
+        jcenter()
+        maven { url "https://jitpack.io" }
+    }
+}
+
+dependencies {
+    api project(':extractor')
+    implementation project(':timeago-parser')
+}
+
+subprojects {
+    task sourcesJar(type: Jar, dependsOn: classes) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    tasks.withType(Test) {
+        testLogging {
+            events "skipped", "failed"
+            showStandardStreams = true
+            exceptionFormat = 'full'
+        }
+    }
+
+    artifacts {
+        archives sourcesJar
+    }
+}
+
+// https://discuss.gradle.org/t/best-approach-gradle-multi-module-project-generate-just-one-global-javadoc/18657/21
+task aggregatedJavadocs(type: Javadoc, group: 'Documentation') {
+    destinationDir = file("$buildDir/docs/javadoc")
+    title = "$project.name $version"
+    // options.memberLevel = JavadocMemberLevel.PRIVATE
+    options.links 'https://docs.oracle.com/javase/7/docs/api/'
+    options.encoding 'UTF-8'
+
+    subprojects.each { project ->
+        project.tasks.withType(Javadoc).each { javadocTask ->
+            source += javadocTask.source
+            classpath += javadocTask.classpath
+            excludes += javadocTask.excludes
+            includes += javadocTask.includes
+        }
+    }
+}
